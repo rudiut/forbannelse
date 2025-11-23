@@ -1,22 +1,28 @@
+import os
 import tkinter as tk
 from tkinter import ttk
 from PIL import Image, ImageTk
 import random
 import pygame
 
+# ---------- Base path ----------
+BASE_DIR = os.path.dirname(__file__)
+def asset_path(*parts):
+    return os.path.join(BASE_DIR, *parts)
+
 # ---------- Lydoppsett ----------
 pygame.mixer.init()
-pygame.mixer.music.load("never_surrender.ogg")
+pygame.mixer.music.load(asset_path("music", "Never_Surrender.ogg"))
 pygame.mixer.music.play(-1)  # loop kampmusikk
 
 def play_game_over():
     pygame.mixer.music.stop()
-    pygame.mixer.music.load("game_over.ogg")
+    pygame.mixer.music.load(asset_path("music", "Game_Over.ogg"))
     pygame.mixer.music.play()
 
 def play_victory():
     pygame.mixer.music.stop()
-    pygame.mixer.music.load("ship.ogg")
+    pygame.mixer.music.load(asset_path("music", "Ship.ogg"))
     pygame.mixer.music.play()
     victory_animation()
 
@@ -55,41 +61,41 @@ WIDTH, HEIGHT = 400, 300
 canvas = tk.Canvas(root, width=WIDTH, height=HEIGHT)
 canvas.pack()
 
-def load_sprite(path, size=(96, 96)):
-    img = Image.open(path).resize(size, Image.NEAREST)
+def load_sprite(filename, size=(96, 96)):
+    img = Image.open(asset_path("sprites", filename)).resize(size, Image.NEAREST)
     return ImageTk.PhotoImage(img)
 
-def try_load_sprite(path, size=(96, 96)):
+def try_load_sprite(filename, size=(96, 96)):
     try:
-        return load_sprite(path, size)
+        return load_sprite(filename, size)
     except Exception:
         return None
 
-# Bakgrunn og sprites
-bg_image = ImageTk.PhotoImage(Image.open("haunted_bg.png").resize((WIDTH, HEIGHT), Image.NEAREST))
+# ---------- Bakgrunn og sprites ----------
+bg_image = ImageTk.PhotoImage(
+    Image.open(asset_path("backgrounds", "haunted_bg.png")).resize((WIDTH, HEIGHT), Image.NEAREST)
+)
 canvas.create_image(WIDTH//2, HEIGHT//2, image=bg_image)
 
-spiller_sprite = load_sprite("anemaren.png")                 # nøytral (må finnes)
+spiller_sprite = load_sprite("AneMaren.png")                 # nøytral (må finnes)
 anemaren_glad  = try_load_sprite("anemaren_glad.png")        # glad
 anemaren_redd  = try_load_sprite("anemaren_redd.png")        # skremt
-anemaren_klar  = try_load_sprite("anemaren_klar.png")        # klar for kamp (valgfritt)
-anemaren_op    = try_load_sprite("anemaren_op.png")          # OP med flammer (valgfritt)
-
-fiende_sprite = load_sprite("heks.png")
+anemaren_klar  = try_load_sprite("anemaren_klar.png")        # kampklar (valgfritt)
+anemaren_op    = try_load_sprite("anemaren_op.png")          # OP (valgfritt)
+fiende_sprite  = load_sprite("Heks.png")
 
 SPILLER_POS = (60, 220)
 FIENDE_POS  = (320, 60)
 spiller_img = canvas.create_image(*SPILLER_POS, image=spiller_sprite)
 fiende_img  = canvas.create_image(*FIENDE_POS, image=fiende_sprite)
 
-# HP og UI
+# ---------- UI ----------
 spiller_label = tk.Label(root, text="Ane Maren", font=("Courier", 12, "bold"))
 spiller_label.pack(anchor="w", padx=20)
 spiller_bar = ttk.Progressbar(root, length=200, maximum=SPILLER_MAX)
 spiller_bar.pack(anchor="w", padx=20)
 spiller_bar.config(value=spiller_hp)
 
-# 🔥 Buff-indikator ved spiller-HP
 buff_icon = tk.Label(root, text="", font=("Courier", 12))
 buff_icon.pack(anchor="w", padx=20)
 
@@ -157,7 +163,7 @@ def disable_buttons():
     run_button.config(state="disabled")
 
 def victory_animation():
-    # konfetti
+    # Konfetti
     for _ in range(30):
         x = random.randint(0, WIDTH)
         y = random.randint(0, HEIGHT//2)
@@ -168,7 +174,7 @@ def victory_animation():
             if canvas.coords(ci)[1] < HEIGHT:
                 root.after(100, fall, ci)
         fall()
-    # blinkende stjerner
+    # Blinkende stjerner
     for _ in range(10):
         x = random.randint(0, WIDTH)
         y = random.randint(0, HEIGHT//2)
@@ -201,6 +207,7 @@ def maren_angrep():
     else:
         set_sprite("glad")
 
+    # Dynamisk ult når lav HP
     if spiller_hp <= int(SPILLER_MAX * 0.3):
         navn = "🧨 Voksenkjeft"
         base = 20
@@ -307,7 +314,12 @@ item_button = tk.Button(menu_frame, text="Item", command=velg_item,
                         font=("Courier", 12), width=10)
 item_button.grid(row=0, column=1, padx=5)
 
-run_button = tk.Button(menu_frame, text="Run", command=lambda: (textbox.config(text="🏃‍♀️ Ane Maren flyktet fra kampen!"), disable_buttons()),
+def do_run():
+    textbox.config(text="🏃‍♀️ Ane Maren flyktet fra kampen!")
+    disable_buttons()
+    play_game_over()  # liten dramatisk avslutning på flukt
+
+run_button = tk.Button(menu_frame, text="Run", command=do_run,
                        font=("Courier", 12), width=10)
 run_button.grid(row=0, column=2, padx=5)
 
