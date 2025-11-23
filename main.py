@@ -181,24 +181,42 @@ def do_run():
     play_game_over()
     game_active = False
 
-# ---------- JRPG-meny ----------
+# ---------- Menyer ----------
 menu_index = 0
 menu_items = ["Fight", "Item", "Run"]
 
-def draw_menu():
-    panel_w, panel_h = 160, 120
-    panel_x, panel_y = WIDTH - panel_w - 20, HEIGHT - panel_h - 20
-    panel = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
-    pygame.draw.rect(screen, (0, 0, 128), panel)
-    pygame.draw.rect(screen, (255, 255, 255), panel, 2)
+item_menu_open = False
+item_index = 0
+item_options = ["☕ Kopp te", "🍬 Brente mandler"]
 
-    for i, label in enumerate(menu_items):
-        prefix = "▶ " if i == menu_index else "  "
-        txt = font.render(prefix + label, True, (255, 255, 255))
-        screen.blit(txt, (panel_x + 12, panel_y + 10 + i * 32))
+def draw_menu():
+    if item_menu_open:
+        # Item undermeny
+        panel_w, panel_h = 200, 100
+        panel_x, panel_y = WIDTH - panel_w - 20, HEIGHT - panel_h - 20
+        panel = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
+        pygame.draw.rect(screen, (0, 0, 128), panel)
+        pygame.draw.rect(screen, (255, 255, 255), panel, 2)
+
+        for i, label in enumerate(item_options):
+            prefix = "▶ " if i == item_index else "  "
+            txt = font.render(prefix + label, True, (255, 255, 255))
+            screen.blit(txt, (panel_x + 12, panel_y + 10 + i * 32))
+    else:
+        # Hovedmeny
+        panel_w, panel_h = 160, 120
+        panel_x, panel_y = WIDTH - panel_w - 20, HEIGHT - panel_h - 20
+        panel = pygame.Rect(panel_x, panel_y, panel_w, panel_h)
+        pygame.draw.rect(screen, (0, 0, 128), panel)
+        pygame.draw.rect(screen, (255, 255, 255), panel, 2)
+
+        for i, label in enumerate(menu_items):
+            prefix = "▶ " if i == menu_index else "  "
+            txt = font.render(prefix + label, True, (255, 255, 255))
+            screen.blit(txt, (panel_x + 12, panel_y + 10 + i * 32))
 
 def handle_menu_selection():
-    global menu_index
+    global item_menu_open
     choice = menu_items[menu_index]
     if choice == "Fight":
         if game_active:
@@ -206,19 +224,18 @@ def handle_menu_selection():
             if game_active and fiende_hp > 0 and spiller_hp > 0:
                 heks_angrep()
     elif choice == "Item":
-        if game_active:
-            if items["☕ Kopp te"]["count"] > 0:
-                bruk_item("☕ Kopp te")
-                if game_active and fiende_hp > 0 and spiller_hp > 0:
-                    heks_angrep()
-            elif items["🍬 Brente mandler"]["count"] > 0:
-                bruk_item("🍬 Brente mandler")
-                if game_active and fiende_hp > 0 and spiller_hp > 0:
-                    heks_angrep()
-            else:
-                textbox_text = "❌ Ingen items igjen!"
+        item_menu_open = True
     elif choice == "Run":
         do_run()
+
+def handle_item_selection():
+    global item_menu_open
+    choice = item_options[item_index]
+    if game_active:
+        bruk_item(choice)
+        if game_active and fiende_hp > 0 and spiller_hp > 0:
+            heks_angrep()
+    item_menu_open = False
 
 # ---------- Main loop ----------
 running = True
@@ -230,22 +247,42 @@ while running:
         # Tastestyring
         if event.type == pygame.KEYDOWN:
             if event.key in (pygame.K_ESCAPE,):
-                running = False
+                if item_menu_open:
+                    item_menu_open = False
+                else:
+                    running = False
             elif event.key in (pygame.K_DOWN, pygame.K_s):
-                menu_index = (menu_index + 1) % len(menu_items)
+                if item_menu_open:
+                    item_index = (item_index + 1) % len(item_options)
+                else:
+                    menu_index = (menu_index + 1) % len(menu_items)
             elif event.key in (pygame.K_UP, pygame.K_w):
-                menu_index = (menu_index - 1) % len(menu_items)
+                if item_menu_open:
+                    item_index = (item_index - 1) % len(item_options)
+                else:
+                    menu_index = (menu_index - 1) % len(menu_items)
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                handle_menu_selection()
+                if item_menu_open:
+                    handle_item_selection()
+                else:
+                    handle_menu_selection()
 
         # Mus-klikk på meny
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            panel_w, panel_h = 160, 120
-            panel_x, panel_y = WIDTH - panel_w - 20, HEIGHT - panel_h - 20
-            if panel_x <= event.pos[0] <= panel_x + panel_w and panel_y <= event.pos[1] <= panel_y + panel_h:
-                rel_y = event.pos[1] - panel_y
-                menu_index = min(len(menu_items) - 1, max(0, rel_y // 32))
-                handle_menu_selection()
+            if item_menu_open:
+                panel_w, panel_h = 200, 100
+                panel_x, panel_y = WIDTH - panel_w - 20, HEIGHT - panel_h - 20
+                if panel_x <= event.pos[0] <= panel_x + panel_w and panel_y <= event.pos[1] <= panel_y + panel_h:
+                    rel_y = event.pos[1] - panel_y
+                    item_index = min(len(item_options) - 1, max(0, rel_y // 32))
+                    handle_item_selection()
+            else:
+                panel_w, panel_h = 160, 120
+                panel_x, panel_y = WIDTH - panel_w - 20, HEIGHT - panel_h - 20
+                if panel_x <= event.pos[0] <= panel_x + panel_w and panel_y <= event.pos[1] <= panel_y + panel_h:
+                    rel_y = event.pos[1] - panel_y
+                    menu_index = min(len(menu_items) - 1, max(0, rel_y // 32))
+                    handle_menu_selection()
 
     # Tegn alt
     screen.blit(bg, (0, 0))
